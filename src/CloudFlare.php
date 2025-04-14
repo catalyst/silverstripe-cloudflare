@@ -84,6 +84,10 @@ class CloudFlare
      */
     public function getServerName()
     {
+        $serverName = Environment::getEnv('CLOUDFLARE_SERVER_NAME') ?? '';
+        if($serverName) {
+            return $serverName;
+        }
         $serverName = '';
         if (isset($_SERVER['HTTP_HOST']) && !empty($_SERVER['HTTP_HOST'])) {
             $serverName = Convert::raw2xml($_SERVER['HTTP_HOST']); // "Fixes" #1 (what?)
@@ -297,16 +301,21 @@ class CloudFlare
             curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
         }
 
-        $result = curl_exec($curl);
+        try {
+            $result = curl_exec($curl);
+            $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
-        $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-
-        // Handle any errors
-        if (false === $result) {
-            throw new Exception("Error connecting to Cloudflare: (code={$responseCode})\n" . curl_error($curl));
-        } else if ($errors = json_decode($result)?->errors) {
-            throw new Exception($errors[0]->message . ": (code={$errors[0]->code})");
+            // Handle any errors
+            if (false === $result) {
+                throw new Exception("Error connecting to Cloudflare: (code={$responseCode})\n" . curl_error($curl));
+            } else if ($errors = json_decode($result)?->errors) {
+                throw new Exception($errors[0]->message . ": (code={$errors[0]->code})");
+            }
+        } catch (Exception $e) {
+            //log the exception but don't prevent the page from publishing
+            Injector::inst()->get(LoggerInterface::class)->warning($e->getMessage());
         }
+
 
         curl_close($curl);
 

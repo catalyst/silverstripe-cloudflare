@@ -2,20 +2,23 @@
 
 namespace SteadLane\Cloudflare;
 
-use SilverStripe\CMS\Model\SiteTreeExtension;
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Core\Extension;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\Security\Permission;
+use SteadLane\Cloudflare\Messages\Notifications;
+use Symbiote\QueuedJobs\Services\QueuedJobService;
 
 /**
  * Class CloudFlareExtension
  * @package silverstripe-cloudflare
  * @property SiteTree $owner
  */
-class CloudFlareExtension extends SiteTreeExtension
+class CloudFlareExtension extends Extension
 {
     /**
      * Extension Hook
@@ -50,15 +53,31 @@ class CloudFlareExtension extends SiteTreeExtension
                 $this->owner->Title != $original->Title // the title has been altered
             ) {
                 // purge everything
-                $purger
-                    ->setSuccessMessage(
+                if(CloudFlare::config()->purge_all !== true) {
+                    QueuedJobService::singleton()->queueJob(
+                        Injector::inst()->create(PurgePagesJob::class)
+                    );
+
+                    Notifications::handleMessage(
                         _t(
                             "CloudFlare.SuccessCriticalElementChanged",
                             "A critical element has changed in this page (url, menu label, or page title) as a result; everything was purged"
                         )
-                    )
-                    ->setPurgeEverything(true)
-                    ->purge();
+                    );
+                } else {
+
+                    $purger
+                        ->setSuccessMessage(
+                            _t(
+                                "CloudFlare.SuccessCriticalElementChanged",
+                                "A critical element has changed in this page (url, menu label, or page title) as a result; everything was purged"
+                            )
+                        )
+                        ->setPurgeEverything(true)
+                        ->purge();
+
+                }
+
             }
 
             if ($shouldPurgeRelations && isset($top)) {
@@ -108,8 +127,6 @@ class CloudFlareExtension extends SiteTreeExtension
                     ->purge();
             }
         }
-
-        parent::onAfterPublish($original);
     }
 
     /**
@@ -117,7 +134,13 @@ class CloudFlareExtension extends SiteTreeExtension
      */
     public function onAfterUnpublish()
     {
-        if (CloudFlare::singleton()->hasCFCredentials() && Permission::check('CF_PURGE_PAGE')) {
+        if(CloudFlare::config()->purge_all !== true) {
+            QueuedJobService::singleton()->queueJob(
+                Injector::inst()->create(PurgePagesJob::class)
+            );
+
+            Notifications::handleMessage("Purge all pages queued successfully. This erases the page from navigation menus.");
+        } else if (CloudFlare::singleton()->hasCFCredentials() && Permission::check('CF_PURGE_PAGE')) {
             $purger = Purge::create();
             $purger
                 ->setPurgeEverything(true)
@@ -137,7 +160,6 @@ class CloudFlareExtension extends SiteTreeExtension
                 ->purge();
         }
 
-        parent::onAfterUnpublish();
     }
 
     /**
@@ -219,15 +241,26 @@ class CloudFlareExtension extends SiteTreeExtension
             return;
         }
 
-        $actions->addFieldToTab(
+        $actions->addFieldsToTab(
             'ActionMenus.MoreOptions',
-            FormAction::create(
-                'purgesinglepageAction',
-                _t(
-                    'CloudFlare.ActionMenuPurge',
-                    'Purge in Cloudflare'
-                )
-            )->addExtraClass('btn-secondary')
+            [
+                FormAction::create(
+                    'purgesinglepageAction',
+                    _t(
+                        'CloudFlare.ActionMenuPurge',
+                        'Purge in Cloudflare'
+                    )
+                )->addExtraClass('btn-secondary'),
+                FormAction::create(
+                    'purgeallpagesAction',
+                    _t(
+                        'CloudFlare.ActionMenuPurgeAllPages',
+                        'Purge all pages in Cloudflare'
+                    )
+                )->addExtraClass('btn-secondary'),
+            ]
         );
+
+
     }
 }

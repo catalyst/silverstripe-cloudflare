@@ -18,15 +18,13 @@
             <div class="campaign-info__icon"><span class="font-icon-white-question icon btn--icon-xl"></span></div>
             <div class="flexbox-area-grow campaign-info__content">
                 <h3>Cloudflare for SilverStripe Module</h3>
-                <p>To connect your SilverStripe website with your Cloudflare account, add your Cloudflare credentials to the site's app/_config.php or mysite/_config.php:</p>
-                <p>
-                    <b>define('CLOUDFLARE_AUTH_EMAIL', 'your@cloudflarelogin.email');</b><br>
-                    <b>define('CLOUDFLARE_AUTH_KEY', 'yourcloudflareauthkey');</b>
-                </p>
-                <p>Or alternatively, add your Cloudflare credentials to the site's .env file:</p>
+                <p>To connect your SilverStripe website with your Cloudflare account, add your Cloudflare credentials to the site's .env file:</p>
                 <p>
                     <b>CLOUDFLARE_AUTH_EMAIL="your@cloudflarelogin.email"</b><br>
                     <b>CLOUDFLARE_AUTH_KEY="yourcloudflareauthkey"</b>
+                    <b>(optional) CLOUDFLARE_SERVER_NAME="your-server-hostname-uat.example.com"</b>
+                    <b>(optional) CLOUDFLARE_ZONE_ID="yourcloudzoneid"</b>
+
                 </p>
             </div>
             <div class="display-1"><i class="font-icon-upload"></i></div>
@@ -52,7 +50,11 @@
                         <div class="cloudflare-panel">
                             <div class="cloudflare-panel-title"><%t CloudFlare.QuickActionsLabel "Quick Actions" %></div>
                             <div class="cloudflare-panel-actions">
-                                <% if $HasPermission('CF_PURGE_ALL') %><a href="{$Link('purge-all')}" class="btn btn-outline-primary"><%t CloudFlare.PurgeAllButton "Purge All" %></a><% end_if %>
+                                <% if $HasPermission('CF_PURGE_ALL') %>
+                                    <a href="{$Link('purge-all')}" class="btn btn-outline-primary"><%t CloudFlare.PurgeAllButton "Purge All" %></a>
+                                <% else %>
+                                <a href="{$Link('purge-all-pages')}" class="btn btn-outline-primary"><%t CloudFlare.PurgeAllPages "Purge Pages" %></a>
+                                <% end_if %>
                                 <% if $HasPermission('CF_PURGE_STYLESHEETS') %><a href="{$Link('purge-stylesheets')}" class="btn btn-outline-primary"><%t CloudFlare.PurgeStylesheetsButton "Purge Stylesheets" %></a><% end_if %>
                                 <% if $HasPermission('CF_PURGE_JAVASCRIPT') %><a href="{$Link('purge-javascript')}" class="btn btn-outline-primary"><%t CloudFlare.PurgeJavascriptButton "Purge Javascript" %></a><% end_if %>
                                 <% if $HasPermission('CF_PURGE_IMAGES') %><a href="{$Link('purge-images')}" class="btn btn-outline-primary"><%t CloudFlare.PurgeImagesButton "Purge Images" %></a><% end_if %>

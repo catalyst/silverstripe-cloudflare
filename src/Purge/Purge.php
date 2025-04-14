@@ -9,8 +9,10 @@ use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Control\Director;
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataObject;
 use SteadLane\Cloudflare\Messages\Notifications;
+use Symbiote\QueuedJobs\Services\QueuedJobService;
 
 /**
  * Class Purge
@@ -403,7 +405,7 @@ class Purge
     public function getEndpoint()
     {
         $zoneId = CloudFlare::singleton()->fetchZoneID();
-        return str_replace(":identifier", (string)$zoneId, static::$endpoint);
+        return str_replace(":identifier", $zoneId, static::$endpoint);
     }
 
     /**
@@ -599,7 +601,21 @@ class Purge
         }
 
         if ($what == 'all') {
-            $purger->setPurgeEverything(true)->purge();
+            if(CloudFlare::config()->purge_all !== true) {
+                QueuedJobService::singleton()->queueJob(
+                    Injector::inst()->create(PurgePagesJob::class)
+                );
+
+                Notifications::handleMessage(
+                    _t(
+                        "CloudFlare.SuccessCriticalElementChanged",
+                        "A critical element has changed in this page (url, menu label, or page title) as a result; everything was purged"
+                    )
+                );
+            } else {
+                $purger->setPurgeEverything(true)->purge();
+            }
+
             return $purger->isSuccessful();
         }
 
