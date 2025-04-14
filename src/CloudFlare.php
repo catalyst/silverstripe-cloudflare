@@ -355,8 +355,6 @@ class CloudFlare
         }
 
         $headers = array(
-            // "X-Auth-Email: {$auth['email']}",
-            // "X-Auth-Key: {$auth['key']}",
             "Authorization: Bearer " . Environment::getEnv('CLOUDFLARE_AUTH_KEY'),
             "Content-Type: application/json"
         );
