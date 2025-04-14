@@ -1,5 +1,5 @@
 {
-  "name": "catalyst/silverstripe-cloudflare",
+  "name": "catalyst.net.nz/silverstripe-cloudflare",
   "description": "This module aims to relieve the stress of using Cloudflare caching with any SilverStripe project. Adds extension hooks that clears Cloudflare's cache for a specific page when that page is published or unpublished.",
   "type": "silverstripe-vendormodule",
   "keywords": [
