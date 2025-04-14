@@ -14,42 +14,51 @@ Cloudflare allows you to have multiple domains registered under a single account
 
 **Note**: The detected Zone ID will always be shown in the SilverStripe Administration panel whilst viewing the "Cloudflare" menu item. To bypass this, set CLOUDFLARE_ZONE_ID as an environment variable, obtained from the Cloudflare dashboard
 
+## Why is this module forked?
+
+This module is a fork of the original [SteadLane module](https://github.com/steadlane/silverstripe-cloudflare), which was written for Silverstripe 3 and featured on the [Silverstripe blog](https://github.com/steadlane/silverstripe-cloudflare).  The parent repository was upgraded to Silverstripe 4, but necessary changes needed to make the module work for Silverstripe 5 are not being reviewed or accepted.  This has led to [numerous forks](https://github.com/arkhi-digital/silverstripe-cloudflare/forks?include=active&page=1&period=&sort_by=stargazer_counts) being maintained by community members, which makes it difficult to track and check out with Composer.  In addition, the Cloudflare API itself has evolved somewhat, leading to a fairly significant rewrite.
+
+To keep the project alive, ________ has agreed to host the module on their public repository, to support their own client work and enable others to continue providing contributions.
+
 ## Features
 
 - Dynamic Zone ID Detection.  You can bypass this by setting CLOUDFLARE_ZONE_ID as an environment variable, obtained from the dashboard
 - Intelligent Purging
-    - If you modify the title or URL of any page: All cache for the zone will be purged.
-    - If you modify the contents of any page: Only the cache for that page will be purged.
+    - If you modify the title or URL of any page: All cache for the pages on that server name will be purged.
+    - If you modify the contents of any page: Only the cache for that page will be purged. This can be done automatically on publish
     - If you modify any page that has a parent, the page you modified and all of it's parents will be purged too.
 - Manual Purging
-    - The administration area for this module allows you to either purge all css files, all javascript files, all image files or ... everything. 
+    - The administration area for this module allows you to either purge all css files, all javascript files, all image files or ... all pages on a specific website.
+
+Unlike the original module, this version deliberately avoids the purge_everything action. It is more appropriate to use Cloudflare's Dashboard if this functionality is required.
     
 ## Installation
 
-This module only supports installation via composer:
+This module only supports installation via Composer:
 
 ```
-composer require steadlane/silverstripe-cloudflare
+composer require catalyst/silverstripe-cloudflare
 ```
 
 Run `/dev/build` afterwards and `?flush=1` for good measure for SilverStripe to become aware of this module
 
 ## Configuration
 
-Define environment variables in `.env`
+You're going to need an API key issued by Cloudflare for your zone.  
+
+1. Login to Cloudflare.  Go to Profile > API Tokens > Create Token
+2. You need to issue a token called "Cache Purges" with "Zone.Zone, Zone.Cache Purge" permissions.  Limit this to one specific zone if possible. 
+3. Define environment variables in `.env`:
 
 ```
-CLOUDFLARE_AUTH_EMAIL="mycloudflare@example.com.au"
 CLOUDFLARE_AUTH_KEY="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-```
 
-Optional:
-```
+#Optional:
 CLOUDFLARE_ZONE_ID="... obtained from dashboard ..."
 CLOUDFLARE_SERVER_NAME=" ... explicitly defined hostname ... "
 ```
 
-When setting `CLOUDFLARE_SERVER_NAME`, you are telling the module to only issue purge commands for this specific hostname. This must match any caching or rewrite rules defined in your zone. For example, if your production domain name is "www.catalyst.net.nz", you should set "www.catalyst.net.nz" instead of just "catalyst.net.nz"
+You can explicitly define the `CLOUDFLARE_ZONE_ID` variable if your API key does not allow you to read Zone information. When setting `CLOUDFLARE_SERVER_NAME`, you are telling the module to only issue purge commands for this specific hostname. This must match any caching or rewrite rules defined in your zone. For example, if your production domain name is "www.catalyst.net.nz", you should set "www.catalyst.net.nz" instead of just "catalyst.net.nz"
 
 ## Cache Rules
 It is recommended that you add the below to your Cloudflare Cache Rules as `no-cache`
