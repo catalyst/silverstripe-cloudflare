@@ -37,7 +37,7 @@ Unlike the original module, this version deliberately avoids the purge_everythin
 This module only supports installation via Composer:
 
 ```
-composer require catalyst/silverstripe-cloudflare
+composer require catalyst.net.nz/silverstripe-cloudflare
 ```
 
 Run `/dev/build` afterwards and `?flush=1` for good measure for SilverStripe to become aware of this module
