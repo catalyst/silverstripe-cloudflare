@@ -12,11 +12,11 @@ Cloudflare allows you to have multiple domains registered under a single account
 
 **Remember**: Always keep your API authentication details secure. If you are concerned with your credentials being on someone else's machine; have them set up their own Cloudflare account.
 
-**Note**: The detected Zone ID will always be shown in the SilverStripe Administration panel whilst viewing the "Cloudflare" menu item
+**Note**: The detected Zone ID will always be shown in the SilverStripe Administration panel whilst viewing the "Cloudflare" menu item. To bypass this, set CLOUDFLARE_ZONE_ID as an environment variable, obtained from the Cloudflare dashboard
 
 ## Features
 
-- Dynamic Zone ID Detection  
+- Dynamic Zone ID Detection.  You can bypass this by setting CLOUDFLARE_ZONE_ID as an environment variable, obtained from the dashboard
 - Intelligent Purging
     - If you modify the title or URL of any page: All cache for the zone will be purged.
     - If you modify the contents of any page: Only the cache for that page will be purged.
@@ -36,19 +36,20 @@ Run `/dev/build` afterwards and `?flush=1` for good measure for SilverStripe to 
 
 ## Configuration
 
-Configuration for this module is minimal, you need only define two constants in `mysite/_config.php`
-
-```
-define('CLOUDFLARE_AUTH_EMAIL', 'mycloudflare@example.com.au');
-define('CLOUDFLARE_AUTH_KEY', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ');
-```
-
-Or alternatively, define environment variables in `.env`
+Define environment variables in `.env`
 
 ```
 CLOUDFLARE_AUTH_EMAIL="mycloudflare@example.com.au"
 CLOUDFLARE_AUTH_KEY="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ```
+
+Optional:
+```
+CLOUDFLARE_ZONE_ID="... obtained from dashboard ..."
+CLOUDFLARE_SERVER_NAME=" ... explicitly defined hostname ... "
+```
+
+When setting `CLOUDFLARE_SERVER_NAME`, you are telling the module to only issue purge commands for this specific hostname. This must match any caching or rewrite rules defined in your zone. For example, if your production domain name is "www.catalyst.net.nz", you should set "www.catalyst.net.nz" instead of just "catalyst.net.nz"
 
 ## Cache Rules
 It is recommended that you add the below to your Cloudflare Cache Rules as `no-cache`
@@ -72,7 +73,7 @@ Q. **The SS Cloudflare administrator section is blank!**
 A. If the Cloudflare administration panel isn't loading correctly, a quick `?flush=1` will resolve this issue.
 
 Q. **The SS Cloudflare footer always says "Zone ID: UNABLE TO DETECT".**
-A. This module dynamically retrieves your Zone ID by using the domain you have accessed the website with. Ensure this domain is correctly registered under your Cloudflare account. If the issue persists, please open a ticket in our issue tracker and provide as much information you can.
+A. This module dynamically retrieves your Zone ID by using the domain you have accessed the website with, unless you have configured it to bypass this. Ensure this domain is correctly registered under your Cloudflare account. If the issue persists, please open a ticket in our issue tracker and provide as much information you can.
 
 
 ## Bugs / Issues
@@ -82,3 +83,5 @@ To report a bug or an issue please use our [issue tracker](https://github.com/st
 ## License
 
 This module is distributed under the [BSD-3 Clause](https://github.com/steadlane/silverstripe-cloudflare/blob/master/LICENSE) license.
+
+.

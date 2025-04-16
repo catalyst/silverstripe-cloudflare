@@ -2,12 +2,17 @@
 
 namespace SteadLane\Cloudflare;
 
+use function Sentry\captureMessage;
+use Sentry\Severity;
+use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Control\Director;
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataObject;
 use SteadLane\Cloudflare\Messages\Notifications;
+use Symbiote\QueuedJobs\Services\QueuedJobService;
 
 /**
  * Class Purge
@@ -17,6 +22,9 @@ class Purge
 {
     use Injectable;
     use Extensible;
+    use Configurable;
+
+    private static $chunk_size = 30;
 
     /**
      * @var string
@@ -58,7 +66,7 @@ class Purge
      */
     protected $fileTypes = array(
         'image' => array(
-            "bmp" ,"gif" ,"jpg" ,"jpeg" ,"pcx" ,"tif" ,"png" ,"alpha","als" ,"cel" ,"icon" ,"ico" ,"ps", "svg"
+            "bmp", "gif", "jpg", "jpeg", "pcx", "tif", "png", "alpha", "als", "cel", "icon", "ico", "ps", "svg"
         ),
         'javascript' => array(
             "js"
@@ -121,7 +129,7 @@ class Purge
         $rootDir = rtrim(str_replace('//', '/', $_SERVER['DOCUMENT_ROOT'] . Director::baseURL() . "/" . $dir), '/');
 
         if (is_array($extensions)) {
-            foreach($extensions as &$ext) {
+            foreach ($extensions as &$ext) {
                 $ext = ltrim($ext, '.');
             }
             $extensions = implode("|", $extensions);
@@ -164,7 +172,8 @@ class Purge
      * @param string $pattern
      * @param array $files
      */
-    private function fileSearchAux($dir, $pattern, &$files) {
+    private function fileSearchAux($dir, $pattern, &$files)
+    {
         $handle = opendir($dir);
         if ($handle) {
             while (($file = readdir($handle)) !== false) {
@@ -217,8 +226,8 @@ class Purge
                 $file = str_replace($basename, $basenameEncoded, $file);
 
                 $files[$index] = str_replace($rootDir, $baseUrl, $file);
-                $files[$index] = str_replace($baseUrl.'/', $baseUrl, $files[$index]); // stooopid
-                $files[$index] = str_replace($baseUrl.'\\/', $baseUrl, $files[$index]); // stoooopid
+                $files[$index] = str_replace($baseUrl . '/', $baseUrl, $files[$index]); // stooopid
+                $files[$index] = str_replace($baseUrl . '\\/', $baseUrl, $files[$index]); // stoooopid
             }
 
             return $files;
@@ -229,9 +238,9 @@ class Purge
             $basenameEncoded = urlencode($basename);
             $files = str_replace($basename, $basenameEncoded, $files);
 
-            $files=str_replace($rootDir, $baseUrl, $files);
-            $files=str_replace($baseUrl.'/', $baseUrl, $files); // stoooooopid
-            return str_replace($baseUrl.'\\/', $baseUrl, $files); // stooooooooooopid
+            $files = str_replace($rootDir, $baseUrl, $files);
+            $files = str_replace($baseUrl . '/', $baseUrl, $files); // stoooooopid
+            return str_replace($baseUrl . '\\/', $baseUrl, $files); // stooooooooooopid
         }
 
         return false;
@@ -294,7 +303,8 @@ class Purge
      *
      * @return $this
      */
-    public function setTestOnly($bool, $success) {
+    public function setTestOnly($bool, $success)
+    {
         $this->testOnly = $bool;
         $this->testResultSuccess = $success;
 
@@ -331,18 +341,20 @@ class Purge
             $data['files'] = $this->getUrlVariants($data['files']);
         }
 
-        if (array_key_exists('files', $data) && count($data['files']) > 500) {
-            // slice the array into chunks of 500 then recursively call this function.
-            // cloudflare limits cache purging to 500 files per request.
-            $chunks = ceil(count($data['files']) / 500);
+        $chunkSize = $this->config()->chunk_size;
+
+        if (array_key_exists('files', $data) && count($data['files']) > $chunkSize) {
+            // slice the array into chunks of $chunkSize then recursively call this function.
+            // cloudflare limits cache purging to $chunkSize files per request.
+            $chunks = ceil(count($data['files']) / $chunkSize);
             $start = 0;
             $responses = array();
 
             for ($i = 0; $i < $chunks; $i++) {
-                $chunk = array_slice($data['files'], $start, 500);
+                $chunk = array_slice($data['files'], $start, $chunkSize);
                 $result = $this->handleRequest(array('files' => $chunk), true);
                 $responses[] = json_decode($result, true);
-                $start += 500;
+                $start += $chunkSize;
             }
 
             return $responses;
@@ -352,7 +364,9 @@ class Purge
             return CloudFlare::getMockResponse('Purge', $this->testResultSuccess);
         }
 
-        return CloudFlare::singleton()->curlRequest($this->getEndpoint(), $data, $method);
+        $response = CloudFlare::singleton()->curlRequest($this->getEndpoint(), $data, $method);
+
+        return $response;
     }
 
     /**
@@ -423,7 +437,6 @@ class Purge
         }
 
         return false;
-
     }
 
     /**
@@ -528,7 +541,8 @@ class Purge
     /**
      * @return array
      */
-    public function getFileTypes() {
+    public function getFileTypes()
+    {
 
         $types = $this->fileTypes;
         $this->extend('updateCloudFlarePurgeFileTypes', $types);
@@ -543,7 +557,8 @@ class Purge
      *
      * @return bool
      */
-    public function isBlacklisted($dir) {
+    public function isBlacklisted($dir)
+    {
         if (!is_array($blacklist = CloudFlare::config()->purge_dir_blacklist)) {
             return false;
         }
@@ -578,7 +593,7 @@ class Purge
             $page = $other_id;
 
             $purger
-                ->pushFile(str_replace("//","/",$_SERVER['DOCUMENT_ROOT'] . "/" .$page->Link()))
+                ->pushFile(str_replace("//", "/", $_SERVER['DOCUMENT_ROOT'] . "/" . $page->Link()))
                 ->setSuccessMessage('Cache has been purged for: ' . $page->Link())
                 ->purge();
 
@@ -586,7 +601,21 @@ class Purge
         }
 
         if ($what == 'all') {
-            $purger->setPurgeEverything(true)->purge();
+            if(CloudFlare::config()->purge_all !== true) {
+                QueuedJobService::singleton()->queueJob(
+                    Injector::inst()->create(PurgePagesJob::class)
+                );
+
+                Notifications::handleMessage(
+                    _t(
+                        "CloudFlare.SuccessCriticalElementChanged",
+                        "A critical element has changed in this page (url, menu label, or page title) as a result; everything was purged"
+                    )
+                );
+            } else {
+                $purger->setPurgeEverything(true)->purge();
+            }
+
             return $purger->isSuccessful();
         }
 

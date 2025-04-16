@@ -3,12 +3,14 @@
 namespace SteadLane\Cloudflare;
 
 use SilverStripe\Admin\LeftAndMain;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\PermissionProvider;
 use SilverStripe\Security\Security;
 use SilverStripe\View\ArrayData;
 use SilverStripe\View\Requirements;
 use Steadlane\CloudFlare\Messages\Notifications;
+use Symbiote\QueuedJobs\Services\QueuedJobService;
 
 /**
  * Class CloudFlareAdmin
@@ -24,6 +26,7 @@ class CloudFlareAdmin extends LeftAndMain implements PermissionProvider
 
     private static $allowed_actions = array(
         'purge_all',
+        'purge_all_pages',
         'purge_stylesheets',
         'purge_images',
         'purge_javascript',
@@ -77,7 +80,7 @@ class CloudFlareAdmin extends LeftAndMain implements PermissionProvider
         parent::init();
 
         //Requirements::css('cloudflare/css/cloudflare.min.css');
-        $css=@file_get_contents(dirname(__FILE__).'/../../css/cloudflare.min.css');
+        $css = @file_get_contents(dirname(__FILE__) . '/../../css/cloudflare.min.css');
         if (!empty($css)) {
             Requirements::customCSS($css);
         }
@@ -88,22 +91,41 @@ class CloudFlareAdmin extends LeftAndMain implements PermissionProvider
      */
     public function purge_all()
     {
-        if (!Permission::check('CF_PURGE_ALL')) {
+        if (!Permission::check('CF_PURGE_ALL') ) {
             Security::permissionFailure();
         }
 
-        $purger = Purge::create();
-        $purger
-            ->setPurgeEverything(true)
-            ->setSuccessMessage(
-                _t(
-                    "CloudFlare.PurgedEverything",
-                    "Successfully purged EVERYTHING from cache."
+        if(!$this->config()->purge_all !== true) {
+            QueuedJobService::singleton()->queueJob(
+                Injector::inst()->create(PurgePagesJob::class)
+            );
+
+            Notifications::handleMessage("Purge all pages queued successfully. This erases the page from navigation menus.");
+        } else {
+
+            $purger = Purge::create();
+            $purger
+                ->setPurgeEverything(true)
+                ->setSuccessMessage(
+                    _t(
+                        "CloudFlare.PurgedEverything",
+                        "Successfully purged EVERYTHING from cache."
+                    )
                 )
-            )
-            ->purge();
+                ->purge();
+
+        }
 
         return $this->redirect($this->Link('/'));
+    }
+
+    public function purge_all_pages()
+    {
+        QueuedJobService::singleton()->queueJob(
+            Injector::inst()->create(PurgePagesJob::class)
+        );
+
+        Notifications::handleMessage("Purge all pages queued successfully");
     }
 
     /**
@@ -267,6 +289,9 @@ class CloudFlareAdmin extends LeftAndMain implements PermissionProvider
      */
     public function HasPermission($code)
     {
+        if($code == 'CF_PURGE_ALL' && $this->config()->purge_all !== true) {
+            return false;
+        }
         return Permission::check($code);
     }
 

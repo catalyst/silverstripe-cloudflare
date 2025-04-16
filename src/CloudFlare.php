@@ -2,6 +2,7 @@
 
 namespace SteadLane\Cloudflare;
 
+use Exception;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
 use SilverStripe\Control\Director;
@@ -83,6 +84,10 @@ class CloudFlare
      */
     public function getServerName()
     {
+        $serverName = Environment::getEnv('CLOUDFLARE_SERVER_NAME') ?? '';
+        if($serverName) {
+            return $serverName;
+        }
         $serverName = '';
         if (isset($_SERVER['HTTP_HOST']) && !empty($_SERVER['HTTP_HOST'])) {
             $serverName = Convert::raw2xml($_SERVER['HTTP_HOST']); // "Fixes" #1 (what?)
@@ -101,7 +106,9 @@ class CloudFlare
             'http://' => '',
             'https://' => ''
         );
-        if (!isset($_SERVER['HTTP_HOST'])) { $replaceWith['www.']=''; } // hack!
+        if (!isset($_SERVER['HTTP_HOST'])) {
+            $replaceWith['www.'] = '';
+        } // hack!
         $serverName = str_replace(array_keys($replaceWith), array_values($replaceWith), $serverName);
 
         // Allow extensions to modify or replace the server name if required
@@ -126,6 +133,10 @@ class CloudFlare
      */
     public function fetchZoneID()
     {
+        if ($zoneID = Environment::getEnv('CLOUDFLARE_ZONE_ID')) {
+            $this->isReady(true);
+            return $zoneID;
+        }
         if (!$this->hasCFCredentials()) {
             return null;
         }
@@ -145,9 +156,9 @@ class CloudFlare
                 _t(
                     "CloudFlare.NoLocalhost",
                     "This module does not operate under <strong>localhost</strong>." .
-                    "Please ensure your website has a resolvable DNS and access the website via the domain."
+                        "Please ensure your website has a resolvable DNS and access the website via the domain."
                 ),
-                ["type"=>"error"]
+                ["type" => "error"]
             );
 
             return false;
@@ -168,13 +179,13 @@ class CloudFlare
                 _t(
                     "CloudFlare.ZoneIdNotFound",
                     "Unable to detect a Zone ID for <strong>{server_name}</strong> under the defined Cloudflare" .
-                    " user.<br/><br/>Please create a new zone under this account to use this module on this domain.",
+                        " user.<br/><br/>Please create a new zone under this account to use this module on this domain.",
                     "",
                     array(
                         "server_name" => $serverName
                     )
                 ),
-                ["type"=>"error"]
+                ["type" => "error"]
             );
 
             return false;
@@ -200,7 +211,7 @@ class CloudFlare
      */
     public function isReady($state = null)
     {
-        if ($state!==null) {
+        if ($state !== null) {
             self::$ready = (bool)$state;
             return $state;
         }
@@ -218,8 +229,8 @@ class CloudFlare
     {
         $session = Controller::curr()->getRequest()->getSession()->get('slCloudFlare');
         if (!$session) {
-            $session=array();
-            Controller::curr()->getRequest()->getSession()->set('slCloudFlare',$session);
+            $session = array();
+            Controller::curr()->getRequest()->getSession()->set('slCloudFlare', $session);
         }
         return $session;
     }
@@ -263,7 +274,7 @@ class CloudFlare
      *
      * @return string JSON
      */
-    public function curlRequest($url, $data = null, $method = 'DELETE')
+    public function curlRequest($url, $data = null, $method = 'DELETE'): string
     {
         $curlTimeout = $this->getCurlTimeout();
 
@@ -290,18 +301,23 @@ class CloudFlare
             curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
         }
 
-        $result = curl_exec($curl);
-        $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        try {
+            $result = curl_exec($curl);
+            $responseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
 
-        // Handle any errors
-        if (false === $result) {
-            self::debug("Error connecting to Cloudflare: (code=".$responseCode.")\n".curl_error($curl));
-            user_error(sprintf("Error connecting to Cloudflare: (code=%s)\n%s", ((string)$responseCode), curl_error($curl)), E_USER_ERROR);
+            // Handle any errors
+            if (false === $result) {
+                throw new Exception("Error connecting to Cloudflare: (code={$responseCode})\n" . curl_error($curl));
+            } else if ($errors = json_decode($result)?->errors) {
+                throw new Exception($errors[0]->message . ": (code={$errors[0]->code})");
+            }
+        } catch (Exception $e) {
+            //log the exception but don't prevent the page from publishing
+            Injector::inst()->get(LoggerInterface::class)->warning($e->getMessage());
         }
-        curl_close($curl);
 
-        self::debug("CloudFlare::curlRequest() / url = [".$url."] data=".(is_null($data)?"NULL":$data)." / response code=[".$responseCode."]".($result===false?" error=[".curl_error($curl)."]":""));
-        //self::debug("CloudFlare::curlRequest() / result = [".$result."]");
+
+        curl_close($curl);
 
         return $result;
     }
@@ -314,9 +330,9 @@ class CloudFlare
     public function getUserAgent()
     {
         return "Mozilla/5.0 " .
-        "(Macintosh; Intel Mac OS X 10_11_6) " .
-        "AppleWebKit/537.36 (KHTML, like Gecko) " .
-        "Chrome/53.0.2785.143 Safari/537.36";
+            "(Macintosh; Intel Mac OS X 10_11_6) " .
+            "AppleWebKit/537.36 (KHTML, like Gecko) " .
+            "Chrome/53.0.2785.143 Safari/537.36";
     }
 
     /**
@@ -339,8 +355,9 @@ class CloudFlare
         }
 
         $headers = array(
-            "X-Auth-Email: {$auth['email']}",
-            "X-Auth-Key: {$auth['key']}",
+            // "X-Auth-Email: {$auth['email']}",
+            // "X-Auth-Key: {$auth['key']}",
+            "Authorization: Bearer " . Environment::getEnv('CLOUDFLARE_AUTH_KEY'),
             "Content-Type: application/json"
         );
 
@@ -394,7 +411,8 @@ class CloudFlare
      *
      * @return array
      */
-    public static function getMockResponse($type, $isSuccessful) {
+    public static function getMockResponse($type, $isSuccessful)
+    {
         $mockDir = rtrim($_SERVER['DOCUMENT_ROOT'], '/') . Director::baseURL() . "cloudflare/tests/Mock/";
 
         if (getenv('TRAVIS')) {
@@ -421,12 +439,12 @@ class CloudFlare
      * @param string $msg
      * @param Object|array|null $obj
      */
-    public static function debug($msg, $obj=null)
+    public static function debug($msg, $obj = null)
     {
         if (CloudFlare::config()->debug && Injector::inst()->get(LoggerInterface::class)) {
-            $error=$msg;
+            $error = $msg;
             if ($obj) {
-                $error.=' '.print_r($obj,true);
+                $error .= ' ' . print_r($obj, true);
             }
             Injector::inst()->get(LoggerInterface::class)->debug($error);
         }
