@@ -72,10 +72,6 @@ It is recommended that you add the below to your Cloudflare Cache Rules as `no-c
 
 ![Bypass Cache Example](http://i.imgur.com/s37SJX4.png)
 
-## Contributing
-
-If you feel you can improve this module in any way, shape or form please do not hesitate to submit a PR for review.
-
 ## Troubleshooting and FAQ
 
 Q. **The SS Cloudflare administrator section is blank!**
@@ -85,9 +81,9 @@ Q. **The SS Cloudflare footer always says "Zone ID: UNABLE TO DETECT".**
 A. This module dynamically retrieves your Zone ID by using the domain you have accessed the website with, unless you have configured it to bypass this. Ensure this domain is correctly registered under your Cloudflare account. If the issue persists, please open a ticket in our issue tracker and provide as much information you can.
 
 
-## Bugs / Issues
+## Contributing, Bugs & Issues
 
-To report a bug or an issue please use our [issue tracker](https://github.com/catalyst/silverstripe-cloudflare/issues).
+If you feel you can improve this module in any way, shape or form please do not hesitate to submit an issue, or a PR for review. To report a bug or an issue please use our [issue tracker](https://github.com/catalyst/silverstripe-cloudflare/issues).
 
 ## License
 
