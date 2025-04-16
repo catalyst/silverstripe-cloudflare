@@ -58,23 +58,19 @@ CLOUDFLARE_ZONE_ID="... obtained from dashboard ..."
 CLOUDFLARE_SERVER_NAME=" ... explicitly defined hostname ... "
 ```
 
-You can explicitly define the `CLOUDFLARE_ZONE_ID` variable if your API key does not allow you to read Zone information. When setting `CLOUDFLARE_SERVER_NAME`, you are telling the module to only issue purge commands for this specific hostname. This must match any caching or rewrite rules defined in your zone. For example, if your production domain name is "www.catalyst.net.nz", you should set "www.catalyst.net.nz" instead of just "catalyst.net.nz"
+You can explicitly define the `CLOUDFLARE_ZONE_ID` variable if your API key does not allow you to read Zone information. When setting `CLOUDFLARE_SERVER_NAME`, you are telling the module to only issue purge commands for this specific hostname. This must match any caching or rewrite rules defined in your zone. For example, if your production domain name is "www.example.org", set "www.example.org" not "example.org".
 
 ## Cache Rules
 It is recommended that you add the below to your Cloudflare Cache Rules as `no-cache`
 
-| Rule             	| Comments                                                                                                                                                	|
-|------------------	|---------------------------------------------------------------------------------------------------------------------------------------------------------	|
-| `example.com.au/*stage=Stage*` 	| It is outside the scope of this module to handle cache purging for drafts. Drafts should never need to be cached as they're not usable on the front end 	|
-| `example.com.au/Security/*`   	| Prevents caching of the login page etc                                                                                                                  	|
-| `example.com.au/admin/*`      	| Prevents caching of the Administrator Panel                                                                                                             	|
-| `example.com.au/dev/*`      	| Prevents caching of the development tools                                                                                                             	|
+| Rule             	            | Comments                                                                                                                                                	|
+|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `example.org/*stage=Stage*` 	| It is outside the scope of this module to handle cache purging for drafts. Drafts should never need to be cached as they're not usable on the front end 	|
+| `example.org/Security/*`   	| Prevents caching of the login page etc                                                                                                                  	|
+| `example.org/admin/*`      	| Prevents caching of the Administrator Panel                                                                                                             	|
+| `example.org/dev/*`      	    | Prevents caching of the development tools                                                                                                             	|
 
 ![Bypass Cache Example](http://i.imgur.com/s37SJX4.png)
-
-## Contributing
-
-If you feel you can improve this module in any way, shape or form please do not hesitate to submit a PR for review.
 
 ## Troubleshooting and FAQ
 
@@ -85,10 +81,10 @@ Q. **The SS Cloudflare footer always says "Zone ID: UNABLE TO DETECT".**
 A. This module dynamically retrieves your Zone ID by using the domain you have accessed the website with, unless you have configured it to bypass this. Ensure this domain is correctly registered under your Cloudflare account. If the issue persists, please open a ticket in our issue tracker and provide as much information you can.
 
 
-## Bugs / Issues
+## Contributing, Bugs & Issues
 
-To report a bug or an issue please use our [issue tracker](https://github.com/steadlane/silverstripe-cloudflare/issues).
+If you feel you can improve this module in any way, shape or form please do not hesitate to submit an issue, or a PR for review. To report a bug or an issue please use our [issue tracker](https://github.com/catalyst/silverstripe-cloudflare/issues).
 
 ## License
 
-This module is distributed under the [BSD-3 Clause](https://github.com/steadlane/silverstripe-cloudflare/blob/master/LICENSE) license.
+This module is distributed under the [BSD-3 Clause](https://github.com/catalyst/silverstripe-cloudflare/blob/master/LICENSE) license.
