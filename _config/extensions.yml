@@ -5,6 +5,9 @@ Name: cloudflareextensions
 SilverStripe\CMS\Model\SiteTree:
   extensions:
     - SteadLane\Cloudflare\CloudFlareExtension
+DNADesign\Elemental\Models\BaseElement:
+  extensions:
+    - SteadLane\Cloudflare\CloudFlareElementalExtension
 SilverStripe\Admin\LeftAndMain:
   extensions:
     - SteadLane\Cloudflare\CloudFlareLeftAndMainExtension

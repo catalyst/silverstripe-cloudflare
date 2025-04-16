@@ -3,6 +3,7 @@ en:
     ZoneID: "Zone ID"
     QuickActionsLabel: "Quick Actions"
     PurgeAllButton: "Purge All"
+    PurgeAllPages: 'Purge Pages'
     PurgeStylesheetsButton: "Purge Stylesheets"
     PurgeJavascriptButton: "Purge Javascript"
     PurgeImagesButton: "Purge Images"
@@ -26,5 +27,6 @@ en:
     UnpublishAllCachePurged: "All cache has been purged as a result of unpublishing a page."
     FailureAllCachePurged: "We encountered an error when attempting to purge all cache, consider doing this manually."
     ActionMenuPurge: "Purge in Cloudflare"
+    ActionMenuPurgeAllPages: "Purge all pages in Cloudflare"
     SingleUrlPurgeButton: "Purge"
     UnableToDetect: "UNABLE TO DETECT"

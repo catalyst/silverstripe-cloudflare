@@ -2,20 +2,23 @@
 
 namespace SteadLane\Cloudflare;
 
-use SilverStripe\CMS\Model\SiteTreeExtension;
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Core\Extension;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\Security\Permission;
+use SteadLane\Cloudflare\Messages\Notifications;
+use Symbiote\QueuedJobs\Services\QueuedJobService;
 
 /**
  * Class CloudFlareExtension
  * @package silverstripe-cloudflare
  * @property SiteTree $owner
  */
-class CloudFlareExtension extends SiteTreeExtension
+class CloudFlareExtension extends Extension
 {
     /**
      * Extension Hook
@@ -31,13 +34,13 @@ class CloudFlareExtension extends SiteTreeExtension
             $purger = Purge::create();
             $shouldPurgeRelations = Purge::singleton()->getShouldPurgeRelations();
 
-            $pageUrl=ltrim(DataObject::get_by_id(SiteTree::class, $this->owner->ID)->Link(), "/");
-            if ($pageUrl!='/' && substr($pageUrl,-1)=='/') {
-                $pageUrl=substr($pageUrl,0,strlen($pageUrl)-1); // add first URL without trailing slash
+            $pageUrl = ltrim(DataObject::get_by_id(SiteTree::class, $this->owner->ID)->Link(), "/");
+            if ($pageUrl != '/' && substr($pageUrl, -1) == '/') {
+                $pageUrl = substr($pageUrl, 0, strlen($pageUrl) - 1); // add first URL without trailing slash
             }
-            $urls = array($_SERVER['DOCUMENT_ROOT'].$pageUrl);
-            if ($pageUrl!='/') {
-                array_push($urls, $_SERVER['DOCUMENT_ROOT'].$pageUrl.'/'); // add second URL with trailing slash
+            $urls = array($_SERVER['DOCUMENT_ROOT'] . $pageUrl);
+            if ($pageUrl != '/') {
+                array_push($urls, $_SERVER['DOCUMENT_ROOT'] . $pageUrl . '/'); // add second URL with trailing slash
             }
 
             if ($shouldPurgeRelations) {
@@ -50,15 +53,31 @@ class CloudFlareExtension extends SiteTreeExtension
                 $this->owner->Title != $original->Title // the title has been altered
             ) {
                 // purge everything
-                $purger
-                    ->setSuccessMessage(
+                if(CloudFlare::config()->purge_all !== true) {
+                    QueuedJobService::singleton()->queueJob(
+                        Injector::inst()->create(PurgePagesJob::class)
+                    );
+
+                    Notifications::handleMessage(
                         _t(
                             "CloudFlare.SuccessCriticalElementChanged",
                             "A critical element has changed in this page (url, menu label, or page title) as a result; everything was purged"
                         )
-                    )
-                    ->setPurgeEverything(true)
-                    ->purge();
+                    );
+                } else {
+
+                    $purger
+                        ->setSuccessMessage(
+                            _t(
+                                "CloudFlare.SuccessCriticalElementChanged",
+                                "A critical element has changed in this page (url, menu label, or page title) as a result; everything was purged"
+                            )
+                        )
+                        ->setPurgeEverything(true)
+                        ->purge();
+
+                }
+
             }
 
             if ($shouldPurgeRelations && isset($top)) {
@@ -68,8 +87,8 @@ class CloudFlareExtension extends SiteTreeExtension
                 }
             }
 
-            if (count($urls)===1 && empty($urls[0])) {
-                $urls=array();
+            if (count($urls) === 1 && empty($urls[0])) {
+                $urls = array();
             }
 
             if (count($urls) === 1) {
@@ -107,10 +126,7 @@ class CloudFlareExtension extends SiteTreeExtension
                     ->pushFile($urls)
                     ->purge();
             }
-
         }
-        
-        parent::onAfterPublish($original);
     }
 
     /**
@@ -118,7 +134,13 @@ class CloudFlareExtension extends SiteTreeExtension
      */
     public function onAfterUnpublish()
     {
-        if (CloudFlare::singleton()->hasCFCredentials() && Permission::check('CF_PURGE_PAGE')) {
+        if(CloudFlare::config()->purge_all !== true) {
+            QueuedJobService::singleton()->queueJob(
+                Injector::inst()->create(PurgePagesJob::class)
+            );
+
+            Notifications::handleMessage("Purge all pages queued successfully. This erases the page from navigation menus.");
+        } else if (CloudFlare::singleton()->hasCFCredentials() && Permission::check('CF_PURGE_PAGE')) {
             $purger = Purge::create();
             $purger
                 ->setPurgeEverything(true)
@@ -136,10 +158,8 @@ class CloudFlareExtension extends SiteTreeExtension
                     )
                 )
                 ->purge();
-
         }
 
-        parent::onBeforeUnpublish();
     }
 
     /**
@@ -194,7 +214,9 @@ class CloudFlareExtension extends SiteTreeExtension
     {
         $id = (is_null($parentID)) ? $this->owner->ID : $parentID;
 
-        if (!is_array($output)) { $output = array(); }
+        if (!is_array($output)) {
+            $output = array();
+        }
 
         $children = $this->getChildren($id);
 
@@ -203,7 +225,7 @@ class CloudFlareExtension extends SiteTreeExtension
                 $this->getChildrenRecursive($child->ID, $output);
             }
 
-            $output[] = ltrim(DataObject::get_by_id(SiteTree::class, $child->ID)->Link(), "/");
+            $output[] = $_SERVER['DOCUMENT_ROOT'] . ltrim(DataObject::get_by_id(SiteTree::class, $child->ID)->Link(), "/");
         }
     }
 
@@ -219,14 +241,26 @@ class CloudFlareExtension extends SiteTreeExtension
             return;
         }
 
-        $actions->addFieldToTab(
+        $actions->addFieldsToTab(
             'ActionMenus.MoreOptions',
-            FormAction::create('purgesinglepageAction', 
-                _t(
-                    'CloudFlare.ActionMenuPurge',
-                    'Purge in Cloudflare'
-                )
-            )->addExtraClass('btn-secondary')
+            [
+                FormAction::create(
+                    'purgesinglepageAction',
+                    _t(
+                        'CloudFlare.ActionMenuPurge',
+                        'Purge in Cloudflare'
+                    )
+                )->addExtraClass('btn-secondary'),
+                FormAction::create(
+                    'purgeallpagesAction',
+                    _t(
+                        'CloudFlare.ActionMenuPurgeAllPages',
+                        'Purge all pages in Cloudflare'
+                    )
+                )->addExtraClass('btn-secondary'),
+            ]
         );
+
+
     }
 }
