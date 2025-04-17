@@ -18,7 +18,7 @@ Cloudflare allows you to have multiple domains registered under a single account
 
 This module is a fork of the original [SteadLane module](https://github.com/steadlane/silverstripe-cloudflare), which was written for Silverstripe 3 and featured on the [Silverstripe blog](https://github.com/steadlane/silverstripe-cloudflare).  The parent repository was upgraded to Silverstripe 4, but necessary changes needed to make the module work for Silverstripe 5 are not being reviewed or accepted.  This has led to [numerous forks](https://github.com/arkhi-digital/silverstripe-cloudflare/forks?include=active&page=1&period=&sort_by=stargazer_counts) being maintained by community members, which makes it difficult to track and check out with Composer.  In addition, the Cloudflare API itself has evolved somewhat, leading to a fairly significant rewrite.
 
-To keep the project alive, ________ has agreed to host the module on their public repository, to support their own client work and enable others to continue providing contributions.
+The repository is hosted here, to support our own client work and enable others to continue providing contributions.
 
 ## Features
 
