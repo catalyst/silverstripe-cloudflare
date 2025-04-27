@@ -40,6 +40,8 @@ This module only supports installation via Composer:
 composer require catalyst.net.nz/silverstripe-cloudflare
 ```
 
+For Silverstripe 5.3+, use the 3.0.0 tag.  For older versions, use the older tags: issues raised for these older versions are unlikely to be fixed. 
+
 Run `/dev/build` afterwards and `?flush=1` for good measure for SilverStripe to become aware of this module
 
 ## Configuration
