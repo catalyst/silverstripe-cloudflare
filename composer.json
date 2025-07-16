@@ -34,8 +34,8 @@
     "ext-json": "*",
     "ext-curl": "*",
     "psr/cache": "*",
-    "silverstripe/cms": "^5",
-    "symbiote/silverstripe-queuedjobs": "^5"
+    "silverstripe/cms": "^6",
+    "symbiote/silverstripe-queuedjobs": "^6"
   },
   "prefer-stable": true,
   "minimum-stability": "dev",
