@@ -334,7 +334,7 @@ class Purge
      * @param bool $isRecursing
      * @return string|array
      */
-    public function handleRequest(array $data = null, $isRecursing = null, $method = 'DELETE')
+    public function handleRequest(?array $data, $isRecursing = null, $method = 'DELETE')
     {
         if (array_key_exists('files', $data) && !$isRecursing) {
             // get URL variants
