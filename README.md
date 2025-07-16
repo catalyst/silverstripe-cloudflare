@@ -31,6 +31,11 @@ The repository is hosted here, to support our own client work and enable others 
     - The administration area for this module allows you to either purge all css files, all javascript files, all image files or ... all pages on a specific website.
 
 Unlike the original module, this version deliberately avoids the purge_everything action. It is more appropriate to use Cloudflare's Dashboard if this functionality is required.
+
+
+### Subsites
+
+This module has not been tested extensively with subsites, but it _should_ work.  One gotcha: if your application relies on Apache's `$_SERVER['DOCUMENT_ROOT']` variable this probably isn't to work for you - the `purge` call relies on `AbsoluteLink()` now. If raising a issue or bug for subsites, please provides details and tests.
     
 ## Installation
 

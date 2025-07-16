@@ -34,14 +34,20 @@ class CloudFlareExtension extends Extension
             $purger = Purge::create();
             $shouldPurgeRelations = Purge::singleton()->getShouldPurgeRelations();
 
-            $pageUrl = ltrim(DataObject::get_by_id(SiteTree::class, $this->owner->ID)->Link(), "/");
-            if ($pageUrl != '/' && substr($pageUrl, -1) == '/') {
-                $pageUrl = substr($pageUrl, 0, strlen($pageUrl) - 1); // add first URL without trailing slash
+            $urls = [];
+            $pageUrl = ltrim(DataObject::get_by_id(SiteTree::class, $this->owner->ID)->AbsoluteLink(), "/");
+            if(class_exists('SilverStripe\Subsites\Model\Subsite')) {
+                \SilverStripe\Subsites\Model\Subsite::disable_subsite_filter();
+                $pageUrl = ltrim(
+                    \SilverStripe\Subsites\Model\Subsite::get_from_all_subsites(SiteTree::class)
+                        ?->byID($this->owner->ID)
+                        ?->AbsoluteLink()
+                        ?? '/',
+                        '/'
+                );
+                $pageUrl = str_replace('http://', 'https://', $pageUrl);
             }
-            $urls = array($_SERVER['DOCUMENT_ROOT'] . $pageUrl);
-            if ($pageUrl != '/') {
-                array_push($urls, $_SERVER['DOCUMENT_ROOT'] . $pageUrl . '/'); // add second URL with trailing slash
-            }
+            array_push($urls, $pageUrl);
 
             if ($shouldPurgeRelations) {
                 $top = $this->getTopLevelParent();

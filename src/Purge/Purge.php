@@ -588,13 +588,20 @@ class Purge
 
         if ($what == 'page' && isset($other_id)) {
             if (!($other_id instanceof SiteTree)) {
-                $other_id = DataObject::get_by_id(SiteTree::class, $other_id);
+
+                if(class_exists('SilverStripe\Subsites\Model\Subsite')) {
+                    \SilverStripe\Subsites\Model\Subsite::disable_subsite_filter();
+                    $other_id = \SilverStripe\Subsites\Model\Subsite::get_from_all_subsites(SiteTree::class)
+                        ?->byID($other_id);
+                } else {
+                    $other_id = DataObject::get_by_id(SiteTree::class, $other_id);
+                }
             }
             $page = $other_id;
 
             $purger
-                ->pushFile(str_replace("//", "/", $_SERVER['DOCUMENT_ROOT'] . "/" . $page->Link()))
-                ->setSuccessMessage('Cache has been purged for: ' . $page->Link())
+                ->pushFile($page->AbsoluteLink())
+                ->setSuccessMessage('Cache has been purged for: ' . $page->AbsoluteLink())
                 ->purge();
 
             return $purger->isSuccessful();

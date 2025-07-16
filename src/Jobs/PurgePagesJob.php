@@ -2,13 +2,9 @@
 namespace SteadLane\Cloudflare;
 
 use SilverStripe\CMS\Model\SiteTree;
-use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DB;
 use SilverStripe\Versioned\Versioned;
-use Symbiote\QueuedJobs\DataObjects\QueuedJobDescriptor;
 use Symbiote\QueuedJobs\Services\AbstractQueuedJob;
-use Symbiote\QueuedJobs\Services\QueuedJob;
-use Symbiote\QueuedJobs\Services\QueuedJobService;
 
 if(!class_exists(AbstractQueuedJob::class)) {
     return;
@@ -23,14 +19,17 @@ class PurgePagesJob extends AbstractQueuedJob
 
     public function process()
     {
-        $serverName = CloudFlare::singleton()->getServerName();
+        if(class_exists('SilverStripe\Subsites\Model\Subsite')) {
+            \SilverStripe\Subsites\Model\Subsite::disable_subsite_filter();
+        }
+
         $batch_limit = CloudFlare::config()->purge_batch_limit ?? 30;
         $sleep_interval = CloudFlare::config()->purge_sleep_between_calls ?? 2;
+
         $i = 0;
 
-        // $records = SiteTree::get()->map('ID', 'Link')->toArray();
         $records = Versioned::get_by_stage(SiteTree::class, Versioned::LIVE)
-            ->map('ID', 'Link')->toArray();
+            ->map('ID', 'AbsoluteLink')->toArray();
 
         $batches = array_chunk($records, $batch_limit, true);
 
@@ -39,7 +38,8 @@ class PurgePagesJob extends AbstractQueuedJob
             $purger = Purge::create();
 
             foreach($batch as $id => $link) {
-                $purger->pushFile('https://'.$serverName . $link);
+                $link = str_replace('http://', 'https://', $link);
+                $purger->pushFile($link);
                 DB::alteration_message(sprintf("[%s / %s]\t%s", ($i+1), count($batches), $link));
             }
 

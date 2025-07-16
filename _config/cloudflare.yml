@@ -19,3 +19,10 @@ SteadLane\Cloudflare\CloudFlare:
     - vendor
     - resources
     - _resources
+
+  # URLs are purged in batches to avoid rate-limiting.
+  # This can be adjusted according to the level of paid plan and future API changes
+  purge_batch_limit: 30
+
+  # Number of seconds to wait between purge calls
+  purge_sleep_between_calls: 2

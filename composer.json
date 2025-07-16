@@ -26,6 +26,9 @@
   "support": {
     "issues": "https://github.com/catalyst/silverstripe-cloudflare/issues"
   },
+  "suggest": {
+    "silverstripe/subsites": "This module should support subsites if multiple subdomains are included under the zone"
+  },
   "require": {
     "php": "^8",
     "ext-json": "*",
