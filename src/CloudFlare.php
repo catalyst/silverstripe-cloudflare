@@ -46,7 +46,7 @@ class CloudFlare
      */
     public function hasCFCredentials()
     {
-        if (!getenv('TRAVIS') || !defined('CLOUDFLARE_AUTH_KEY')) || !Environment::getEnv('CLOUDFLARE_AUTH_KEY'))) {
+        if (!Environment::getEnv('CLOUDFLARE_AUTH_KEY')) {
             return false;
         }
 
