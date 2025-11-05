@@ -2,8 +2,6 @@
 
 namespace SteadLane\Cloudflare;
 
-use function Sentry\captureMessage;
-use Sentry\Severity;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
@@ -589,7 +587,7 @@ class Purge
         if ($what == 'page' && isset($other_id)) {
             if (!($other_id instanceof SiteTree)) {
 
-                if(class_exists('SilverStripe\Subsites\Model\Subsite')) {
+                if (class_exists('SilverStripe\Subsites\Model\Subsite')) {
                     \SilverStripe\Subsites\Model\Subsite::disable_subsite_filter();
                     $other_id = \SilverStripe\Subsites\Model\Subsite::get_from_all_subsites(SiteTree::class)
                         ?->byID($other_id);
@@ -608,7 +606,7 @@ class Purge
         }
 
         if ($what == 'all') {
-            if(CloudFlare::config()->purge_all !== true) {
+            if (CloudFlare::config()->purge_all !== true) {
                 QueuedJobService::singleton()->queueJob(
                     Injector::inst()->create(PurgePagesJob::class)
                 );
