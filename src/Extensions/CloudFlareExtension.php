@@ -139,14 +139,18 @@ class CloudFlareExtension extends Extension
      * If something gets unpublished we purge EVERYTHING just to be safe (ie nav menus etc)
      */
     public function onAfterUnpublish()
-    {
+    {        
+        if (!CloudFlare::singleton()->hasCFCredentials()) {
+            return;
+        }
+
         if(CloudFlare::config()->purge_all !== true) {
             QueuedJobService::singleton()->queueJob(
                 Injector::inst()->create(PurgePagesJob::class)
             );
 
             Notifications::handleMessage("Purge all pages queued successfully. This erases the page from navigation menus.");
-        } else if (CloudFlare::singleton()->hasCFCredentials() && Permission::check('CF_PURGE_PAGE')) {
+        } else if (Permission::check('CF_PURGE_PAGE')) {
             $purger = Purge::create();
             $purger
                 ->setPurgeEverything(true)

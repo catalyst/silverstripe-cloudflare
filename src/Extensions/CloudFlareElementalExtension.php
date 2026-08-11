@@ -13,6 +13,10 @@ class CloudFlareElementalExtension extends Extension
 
     public function onAfterPublish()
     {
+        if(!CloudFlare::singleton()->hasCFCredentials()){
+            return;
+        }
+        
         if (!Permission::check('CF_PURGE_PAGE')) {
             Security::permissionFailure();
         }
