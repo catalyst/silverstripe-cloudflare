@@ -20,7 +20,6 @@
                 <h3>Cloudflare for SilverStripe Module</h3>
                 <p>To connect your SilverStripe website with your Cloudflare account, add your Cloudflare credentials to the site's .env file:</p>
                 <p>
-                    <b>CLOUDFLARE_AUTH_EMAIL="your@cloudflarelogin.email"</b><br>
                     <b>CLOUDFLARE_AUTH_KEY="yourcloudflareauthkey"</b>
                     <b>(optional) CLOUDFLARE_SERVER_NAME="your-server-hostname-uat.example.com"</b>
                     <b>(optional) CLOUDFLARE_ZONE_ID="yourcloudzoneid"</b>

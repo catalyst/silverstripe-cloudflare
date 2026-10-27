@@ -2,7 +2,6 @@
 
 namespace SteadLane\Cloudflare;
 
-use SilverStripe\ORM\DataExtension;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\Security;
 use SteadLane\Cloudflare\Purge;

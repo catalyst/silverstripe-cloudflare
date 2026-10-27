@@ -7,7 +7,7 @@ use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\PermissionProvider;
 use SilverStripe\Security\Security;
-use SilverStripe\View\ArrayData;
+use Silverstripe\Model\ArrayData;
 use SilverStripe\View\Requirements;
 use Steadlane\CloudFlare\Messages\Notifications;
 use Symbiote\QueuedJobs\Services\QueuedJobService;

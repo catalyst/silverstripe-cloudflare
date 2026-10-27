@@ -5,6 +5,7 @@ namespace SteadLane\Cloudflare;
 use Exception;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
+use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Convert;
@@ -13,7 +14,6 @@ use SilverStripe\Core\Environment;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
-use SilverStripe\GraphQL\Controller;
 use SteadLane\Cloudflare\Messages\Notifications;
 
 /**
@@ -46,7 +46,7 @@ class CloudFlare
      */
     public function hasCFCredentials()
     {
-        if (!getenv('TRAVIS') && (!defined('CLOUDFLARE_AUTH_EMAIL') || !defined('CLOUDFLARE_AUTH_KEY')) && (!Environment::getEnv('CLOUDFLARE_AUTH_EMAIL') || !Environment::getEnv('CLOUDFLARE_AUTH_KEY'))) {
+        if (!Environment::getEnv('CLOUDFLARE_AUTH_KEY')) {
             return false;
         }
 
@@ -61,14 +61,12 @@ class CloudFlare
     public function getCFCredentials()
     {
         if ($this->hasCFCredentials()) {
-            if (Environment::getEnv('CLOUDFLARE_AUTH_EMAIL')) {
+            if (Environment::getEnv('CLOUDFLARE_AUTH_KEY')) {
                 return array(
-                    'email' => Environment::getEnv('CLOUDFLARE_AUTH_EMAIL'),
-                    'key'   => Environment::getEnv('CLOUDFLARE_AUTH_KEY')
+                    'email' => Environment::getEnv('CLOUDFLARE_AUTH_KEY'),
                 );
             } else {
                 return array(
-                    'email' => CLOUDFLARE_AUTH_EMAIL,
                     'key'   => CLOUDFLARE_AUTH_KEY
                 );
             }
@@ -344,7 +342,6 @@ class CloudFlare
     {
         if (getenv('TRAVIS')) {
             $auth = array(
-                'email' => getenv('AUTH_EMAIL'),
                 'key' => getenv('AUTH_KEY'),
             );
         } elseif (!$auth = $this->getCFCredentials()) {
